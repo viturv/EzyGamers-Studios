@@ -1,26 +1,43 @@
 using UnityEngine;
-using UnityEngine.Rendering.VirtualTexturing;
+using TMPro;
 
 public class DifficultyAdjuster : MonoBehaviour
 {
-    public XpSystem xpSystem;  // Reference to XP system
+    public XpSystem xpSystem; // Reference to the XP system
 
     public enum Difficulty { Easy, Medium, Hard }
     public Difficulty currentDifficulty;
 
+    public TextMeshProUGUI difficultyText; // Reference to Difficulty UI Text
+
     void Start()
     {
-        AdjustDifficulty();
+        if (xpSystem == null)
+        {
+            Debug.LogError("XpSystem reference is not assigned to DifficultyAdjuster.");
+            return;
+        }
+
+        // Initialize the difficulty display
+        UpdateDifficulty();
     }
 
     void Update()
     {
-        // Continuously check if the difficulty needs to be updated
-        AdjustDifficulty();
+        if (xpSystem != null)
+        {
+            // Continuously check and adjust difficulty based on current XP level
+            UpdateDifficulty();
+        }
     }
 
-    public void AdjustDifficulty()
+    public void UpdateDifficulty()
     {
+        if (xpSystem == null) return;
+
+        Difficulty previousDifficulty = currentDifficulty;
+
+        // Adjust difficulty based on the player's level
         if (xpSystem.CurrentLevel <= 5)
         {
             currentDifficulty = Difficulty.Easy;
@@ -33,28 +50,23 @@ public class DifficultyAdjuster : MonoBehaviour
         {
             currentDifficulty = Difficulty.Hard;
         }
-
-        // Apply the difficulty changes based on the difficulty level
-        ApplyDifficulty();
-    }
-
-    public void ApplyDifficulty()
-    {
-        switch (currentDifficulty)
+        UpdateDifficultyText();
+        // Update the UI only if the difficulty has changed
+        if (currentDifficulty != previousDifficulty)
         {
-            case Difficulty.Easy:
-                Debug.Log("Current Difficulty: Easy");
-                break;
-
-            case Difficulty.Medium:
-                Debug.Log("Current Difficulty: Medium");
-                break;
-
-            case Difficulty.Hard:
-                Debug.Log("Current Difficulty: Hard");
-                break;
+            UpdateDifficultyText();
         }
     }
 
+    private void UpdateDifficultyText()
+    {
+        if (difficultyText != null)
+        {
+            difficultyText.text = $"Current Difficulty: {currentDifficulty}";
+        }
+        else
+        {
+            Debug.LogError("DifficultyText is not assigned in the Inspector.");
+        }
+    }
 }
-
