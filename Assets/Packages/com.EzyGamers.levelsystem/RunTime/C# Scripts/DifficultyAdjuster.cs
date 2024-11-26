@@ -3,62 +3,121 @@ using TMPro;
 
 public class DifficultyAdjuster : MonoBehaviour
 {
-    public XpSystem xpSystem; // Reference to the XP system
-
     public enum Difficulty { Easy, Medium, Hard }
     public Difficulty currentDifficulty;
 
+    [Header("Settings")]
+    public float minCompletionTime = 10f; // Minimum time threshold to complete the level
+    public float difficultyIncrementThreshold = 1.2f; // The multiplier to increase enemy speed and spawn rate
+
+    [Header("UI Elements")]
     public TextMeshProUGUI difficultyText; // Reference to Difficulty UI Text
+
+    public DifficultySettings difficultySettings; // Reference to DifficultySettings (ScriptableObject)
+
+    private float levelStartTime; // Time when the level starts
+    private float levelEndTime; // Time when the level ends
 
     void Start()
     {
-        if (xpSystem == null)
-        {
-            Debug.LogError("XpSystem reference is not assigned to DifficultyAdjuster.");
-            return;
-        }
-
-        // Initialize the difficulty display
-        UpdateDifficulty();
+        UpdateDifficultyText(); // Initialize the UI
     }
 
-    void Update()
+    public void StartLevel()
     {
-        if (xpSystem != null)
-        {
-            // Continuously check and adjust difficulty based on current XP level
-            UpdateDifficulty();
-        }
+        levelStartTime = Time.time; // Log the start time
+        Debug.Log($"Level started at: {levelStartTime}");
     }
 
-    public void UpdateDifficulty()
+    public void EndLevel()
     {
-        if (xpSystem == null) return;
+        levelEndTime = Time.time; // Log the end time
+        Debug.Log($"Level ended at: {levelEndTime}");
 
-        Difficulty previousDifficulty = currentDifficulty;
+        float completionTime = levelEndTime - levelStartTime; // Calculate the level completion time
+        Debug.Log($"Level completed in: {completionTime} seconds");
 
-        // Adjust difficulty based on the player's level
-        if (xpSystem.CurrentLevel <= 5)
+        UpdateDifficulty(completionTime); // Adjust difficulty based on completion time
+    }
+
+    // Adjust difficulty based on completion time
+    public void UpdateDifficulty(float levelCompletionTime)
+    {
+        Debug.Log($"Level completed in {levelCompletionTime} seconds.");
+
+        // If the player completes the level faster than the required minimum time
+        if (levelCompletionTime < minCompletionTime)
         {
-            currentDifficulty = Difficulty.Easy;
-        }
-        else if (xpSystem.CurrentLevel <= 10)
-        {
-            currentDifficulty = Difficulty.Medium;
+            // Increase difficulty if not already at max difficulty
+            if (currentDifficulty == Difficulty.Easy)
+            {
+                currentDifficulty = Difficulty.Medium;
+            }
+            else if (currentDifficulty == Difficulty.Medium)
+            {
+                currentDifficulty = Difficulty.Hard;
+            }
+            else if (currentDifficulty == Difficulty.Hard)
+            {
+                // Custom logic to increase difficulty beyond Hard
+                IncreaseBeyondHard();
+            }
+
+            // Decrease the threshold for the next level completion time
+            minCompletionTime -= difficultyIncrementThreshold;
+            minCompletionTime = Mathf.Max(minCompletionTime, 1f); // Ensure the minimum threshold doesn't go below 1 second
+
+            Debug.Log($"New difficulty: {currentDifficulty}, New completion time threshold: {minCompletionTime}");
         }
         else
         {
-            currentDifficulty = Difficulty.Hard;
+            Debug.Log($"Difficulty remains at: {currentDifficulty} because completion time was {levelCompletionTime} seconds.");
         }
-        UpdateDifficultyText();
+
         // Update the UI only if the difficulty has changed
-        if (currentDifficulty != previousDifficulty)
+        UpdateDifficultyText();
+    }
+
+    // Increase difficulty beyond Hard
+    private void IncreaseBeyondHard()
+    {
+        Debug.Log("Player is performing exceptionally well! Increasing additional challenges.");
+
+        // Fetch the current settings based on the current difficulty
+        DifficultyLevelSettings currentLevelSettings = GetDifficultySettings(currentDifficulty);
+
+        // Multiply spawnRate and enemySpeed by the difficultyIncrementThreshold
+        currentLevelSettings.spawnRate *= difficultyIncrementThreshold;
+        currentLevelSettings.enemySpeed *= difficultyIncrementThreshold;
+
+        Debug.Log($"New Spawn Rate: {currentLevelSettings.spawnRate}, New Enemy Speed: {currentLevelSettings.enemySpeed}");
+
+        // You can also add logic to further customize gameplay, such as:
+        // - Adding more enemy types
+        // - Increasing spawn density
+        // - Modifying power-ups or rewards
+
+        // If you want to persist these changes or reflect them in the gameplay, you can apply these changes to relevant gameplay systems
+    }
+
+    // Get the difficulty level settings based on the current difficulty
+    private DifficultyLevelSettings GetDifficultySettings(Difficulty difficulty)
+    {
+        switch (difficulty)
         {
-            UpdateDifficultyText();
+            case Difficulty.Easy:
+                return difficultySettings.easySettings;
+            case Difficulty.Medium:
+                return difficultySettings.mediumSettings;
+            case Difficulty.Hard:
+                return difficultySettings.hardSettings;
+            default:
+                return difficultySettings.easySettings; // Default to Easy if something goes wrong
         }
     }
 
-    private void UpdateDifficultyText()
+    // Update the difficulty text in the UI
+    public void UpdateDifficultyText()
     {
         if (difficultyText != null)
         {
@@ -66,7 +125,7 @@ public class DifficultyAdjuster : MonoBehaviour
         }
         else
         {
-            Debug.LogError("DifficultyText is not assigned in the Inspector.");
+            Debug.LogWarning("DifficultyText is not assigned in the Inspector.");
         }
     }
 }

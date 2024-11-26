@@ -4,6 +4,7 @@ using TMPro;
 
 public class XpSystem : MonoBehaviour
 {
+    
     [Header("UI Elements")]
     public Slider ProgressBar; // ProgressBar to display XP
     public TextMeshProUGUI XPText; // Text to display XP info
